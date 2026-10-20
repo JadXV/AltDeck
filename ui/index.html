@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AltDeck</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+
+      --content: #f5f5f7;
+      --group: #ffffff;
+      --group-border: rgba(0, 0, 0, 0.06);
+      --text: #1d1d1f;
+      --text-2: rgba(60, 60, 67, 0.72);
+      --text-3: rgba(60, 60, 67, 0.42);
+      --separator: rgba(60, 60, 67, 0.12);
+      --hover: rgba(0, 0, 0, 0.045);
+      --sidebar-sel: rgba(0, 0, 0, 0.08);
+      --field: rgba(0, 0, 0, 0.055);
+      --accent: #0071e3;
+      --accent-2: #0077ed;
+      --red: #ff3b30;
+      --green: #34c759;
+      --orange: #ff9500;
+
+      --glass: rgba(255, 255, 255, 0.72);
+      --glass-hover: rgba(255, 255, 255, 0.95);
+      --glass-edge: rgba(0, 0, 0, 0.08);
+      --glass-shine: rgba(255, 255, 255, 0.9);
+      --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.05);
+
+      --panel-edge: rgba(0, 0, 0, 0.08);
+      --panel-shine: rgba(255, 255, 255, 0.6);
+      --avatar-bg: linear-gradient(180deg, #e8e8ed, #d2d2d7);
+      --toast: rgba(255, 255, 255, 0.86);
+      --toast-shadow: 0 10px 30px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --content: #1e1e1e;
+        --group: rgba(255, 255, 255, 0.045);
+        --group-border: rgba(255, 255, 255, 0.06);
+        --text: #f5f5f7;
+        --text-2: rgba(235, 235, 245, 0.62);
+        --text-3: rgba(235, 235, 245, 0.32);
+        --separator: rgba(255, 255, 255, 0.08);
+        --hover: rgba(255, 255, 255, 0.05);
+        --sidebar-sel: rgba(255, 255, 255, 0.1);
+        --field: rgba(255, 255, 255, 0.07);
+        --accent: #0a84ff;
+        --accent-2: #2491ff;
+        --red: #ff453a;
+        --green: #30d158;
+        --orange: #ff9f0a;
+
+        --glass: rgba(255, 255, 255, 0.07);
+        --glass-hover: rgba(255, 255, 255, 0.12);
+        --glass-edge: rgba(255, 255, 255, 0.1);
+        --glass-shine: rgba(255, 255, 255, 0.14);
+        --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.18);
+
+        --panel-edge: rgba(255, 255, 255, 0.09);
+        --panel-shine: rgba(255, 255, 255, 0.08);
+        --avatar-bg: linear-gradient(180deg, #48484a, #2c2c2e);
+        --toast: rgba(50, 50, 52, 0.88);
+        --toast-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; overflow: hidden; background: transparent; }
+
+    body {
+      font: 13px/1.38 -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      -webkit-user-select: none;
+      user-select: none;
+      cursor: default;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+    }
+
+    button { font: inherit; color: inherit; border: none; background: none; cursor: default; }
+    button:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 1px; }
+
+    svg.i {
+      width: 16px; height: 16px; flex-shrink: 0;
+      fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .selectable { -webkit-user-select: text; user-select: text; cursor: text; }
+
+    .sidebar {
+      position: relative;
+      z-index: 0;
+      width: 264px;
+      flex-shrink: 0;
+      margin: 8px 0 8px 8px;
+      border-radius: 18px;
+      box-shadow: 0 0 0 200vmax var(--content);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow: inset 0 0 0 0.5px var(--panel-edge), inset 0 1px 0 var(--panel-shine);
+    }
+
+    .sidebar-top {
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 10px;
+    }
+
+    .search {
+      position: relative;
+      margin: 8px 10px 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    .search svg.i { position: absolute; left: 9px; width: 14px; height: 14px; color: var(--text-3); pointer-events: none; }
+
+    .search input {
+      width: 100%;
+      height: 30px;
+      padding: 0 28px 0 30px;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      background: var(--field);
+      color: var(--text);
+      font: inherit;
+      -webkit-user-select: text;
+      user-select: text;
+      transition: box-shadow 0.15s;
+    }
+
+    .search input::placeholder { color: var(--text-3); }
+    .search input:focus { box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 40%, transparent); }
+
+    .search .clear {
+      position: absolute; right: 6px;
+      width: 17px; height: 17px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      background: var(--text-3); color: var(--content);
+    }
+
+    .search .clear svg.i { position: static; width: 9px; height: 9px; stroke-width: 2.8; color: inherit; }
+    .search.has-text .clear { display: flex; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      padding: 6px 20px 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .accounts {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 10px 10px;
+      outline: none;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 44px;
+      padding: 0 8px;
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .item:hover { background: var(--hover); }
+    .item.selected:has(+ .item.selected) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .item.selected + .item.selected { border-top-left-radius: 0; border-top-right-radius: 0; }
+    .item.selected { background: var(--sidebar-sel); }
+    .accounts:focus-within .item.selected { background: var(--accent); color: #fff; }
+    .accounts:focus-within .item.selected .handle { color: rgba(255, 255, 255, 0.75); }
+    .accounts:focus-within .item.selected .badge { color: #fff; }
+
+    .item .avatar { width: 30px; height: 30px; }
+
+    .item .text { flex: 1; min-width: 0; }
+    .item .display { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item .handle { font-size: 11.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -1px; }
+
+    .item .badge { color: var(--red); display: flex; }
+    .item .badge svg.i { width: 15px; height: 15px; }
+
+    .item .quick {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff;
+    }
+
+    .item .quick svg.i { width: 10px; height: 10px; fill: currentColor; stroke: none; margin-left: 1px; }
+    .item:hover .quick:not([disabled]) { display: flex; }
+    .item:hover .badge { display: none; }
+    .accounts:focus-within .item.selected .quick { background: #fff; color: var(--accent); }
+
+    .sidebar-empty { padding: 30px 20px; text-align: center; color: var(--text-3); font-size: 12px; }
+
+    .avatar {
+      position: relative;
+      border-radius: 50%;
+      background: var(--avatar-bg);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-2);
+      font-weight: 600;
+    }
+
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .glass-btn {
+      height: 32px;
+      min-width: 32px;
+      padding: 0 8px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--glass);
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px var(--glass-edge), inset 0 1px 0 var(--glass-shine);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      backdrop-filter: blur(20px) saturate(1.6);
+      color: var(--text);
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .glass-btn:hover { background: var(--glass-hover); }
+    .glass-btn:active { transform: scale(0.96); }
+    .glass-btn:disabled { opacity: 0.4; transform: none; }
+    .glass-btn svg.i { width: 17px; height: 17px; }
+
+    .glass-group {
+      display: inline-flex;
+      height: 32px;
+      border-radius: 16px;
+      background: var(--glass);
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px var(--glass-edge), inset 0 1px 0 var(--glass-shine);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      backdrop-filter: blur(20px) saturate(1.6);
+      padding: 0 2px;
+    }
+
+    .glass-group button {
+      width: 36px; height: 32px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 16px;
+      color: var(--text);
+    }
+
+    .glass-group button:hover { background: var(--hover); }
+    .glass-group button:disabled { opacity: 0.35; background: none; }
+    .glass-group svg.i { width: 17px; height: 17px; }
+
+    .plain-btn {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text-2);
+    }
+
+    .plain-btn:hover { background: var(--hover); color: var(--text); }
+
+    .capsule {
+      height: 30px;
+      padding: 0 16px;
+      border-radius: 15px;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+    }
+
+    .capsule:active { transform: scale(0.97); }
+    .capsule:disabled { opacity: 0.45; transform: none; }
+    .capsule svg.i { width: 13px; height: 13px; }
+
+    .capsule.primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      padding: 0 22px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 3px color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+
+    .capsule.primary:hover { background: var(--accent-2); }
+    .capsule.primary svg.i { fill: currentColor; stroke: none; }
+
+    .capsule.secondary {
+      background: var(--glass);
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px var(--glass-edge), inset 0 1px 0 var(--glass-shine);
+    }
+
+    .capsule.secondary:hover { background: var(--glass-hover); }
+
+    .spinner {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 1.7px solid currentColor; border-right-color: transparent;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 50% { opacity: 0.35; } }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 14px 0 16px;
+    }
+
+    .toolbar .spacer { flex: 1; align-self: stretch; }
+    .toolbar .glass-group button.spin svg.i { animation: spin 0.9s linear infinite; }
+
+    .detail {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 32px 40px;
+    }
+
+    .card { max-width: 480px; margin: 0 auto; }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 4px 0 22px;
+    }
+
+    .hero .avatar {
+      width: 88px; height: 88px; font-size: 34px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px var(--group-border);
+    }
+
+    .hero h1 {
+      margin-top: 14px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.022em;
+      line-height: 1.15;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hero .handle { margin-top: 3px; font-size: 14px; color: var(--text-2); }
+    .hero .handle.email { margin-top: 1px; font-size: 12.5px; }
+
+    .status {
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-2);
+    }
+
+    .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+    .status.ok .dot { background: var(--green); }
+    .status.expired { color: var(--red); }
+    .status.expired .dot { background: var(--red); }
+    .status.checking .dot { animation: pulse 1.2s ease-in-out infinite; }
+
+    .hero .buttons { margin-top: 16px; display: flex; gap: 10px; }
+
+    .group {
+      background: var(--group);
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 0.5px var(--group-border);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .group-title { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 0 14px 6px; }
+
+    .field {
+      display: flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 14px;
+      gap: 12px;
+      position: relative;
+    }
+
+    .field + .field::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 14px; right: 0;
+      height: 0.5px;
+      background: var(--separator);
+      transform: scaleY(2);
+    }
+
+    .field .label { flex: 1; }
+    .field .value { color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+    .field .value.red { color: var(--red); }
+    .field .value.green { color: var(--green); }
+
+    button.field { width: 100%; text-align: left; }
+    button.field:hover { background: var(--hover); }
+    button.field.action { color: var(--accent); }
+    button.field.destructive { color: var(--red); }
+    button.field .chev { color: var(--text-3); width: 13px; height: 13px; }
+
+    .stack { display: flex; justify-content: center; }
+    .stack .avatar {
+      width: 72px; height: 72px; font-size: 28px;
+      margin-left: -18px;
+      box-shadow: 0 0 0 3px var(--content), 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+    .stack .avatar:first-child { margin-left: 0; }
+
+    .placeholder {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 6px;
+      padding-bottom: 40px;
+      color: var(--text-2);
+    }
+
+    .placeholder .glyph {
+      width: 64px; height: 64px; margin-bottom: 10px;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--group);
+      box-shadow: inset 0 0 0 0.5px var(--group-border);
+      color: var(--text-3);
+    }
+
+    .placeholder .glyph svg.i { width: 30px; height: 30px; stroke-width: 1.4; }
+    .placeholder h2 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+    .placeholder p { font-size: 13px; max-width: 280px; }
+    .placeholder .capsule { margin-top: 14px; }
+    .placeholder .capsule.primary svg.i { fill: none; stroke: currentColor; stroke-width: 2.2; }
+
+    .name-line { display: flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; margin-top: 14px; }
+    .name-line h1 { margin-top: 0 !important; }
+    .seal { width: 20px; height: 20px; flex-shrink: 0; }
+    .tags { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+    .tag { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 10px; white-space: nowrap; }
+    .tag.premium { color: #a26f00; background: rgba(255, 204, 0, 0.22); }
+    .tag.banned { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); }
+    @media (prefers-color-scheme: dark) { .tag.premium { color: #ffd60a; } }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--group);
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 0.5px var(--group-border);
+      margin-bottom: 22px;
+      padding: 12px 0;
+    }
+    .stat { text-align: center; position: relative; padding: 0 6px; min-width: 0; }
+    .stat + .stat::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 1px; background: var(--separator); }
+    .stat .num { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat .num.dim { color: var(--text-3); }
+    .stat .cap { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+
+    .bio { padding: 11px 14px; white-space: pre-wrap; word-break: break-word; line-height: 1.45; max-height: 140px; overflow-y: auto; }
+    .bio.empty { color: var(--text-3); }
+    .bio + .field::before { content: ''; position: absolute; top: 0; left: 14px; right: 0; height: 1px; background: var(--separator); }
+
+    .field .value { max-width: 64%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field .value .sub { color: var(--text-3); }
+    .field .value.accent { color: var(--accent); }
+
+    .skel {
+      display: inline-block; width: 70px; height: 10px; border-radius: 5px; vertical-align: middle;
+      background: linear-gradient(90deg, var(--hover) 25%, var(--separator) 50%, var(--hover) 75%);
+      background-size: 200% 100%; animation: shimmer 1.3s linear infinite;
+    }
+    .stat .skel { width: 46px; height: 17px; border-radius: 6px; }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    .footnote { font-size: 12px; color: var(--text-2); margin: -12px 14px 22px; line-height: 1.45; }
+
+    .segmented {
+      display: inline-flex;
+      height: 32px;
+      padding: 2px;
+      border-radius: 16px;
+      background: var(--glass);
+      box-shadow: var(--glass-shadow), inset 0 0 0 0.5px var(--glass-edge), inset 0 1px 0 var(--glass-shine);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+      backdrop-filter: blur(20px) saturate(1.6);
+    }
+    .segmented button {
+      height: 28px;
+      padding: 0 16px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      transition: background 0.15s, color 0.15s;
+    }
+    .segmented button:hover { color: var(--text); }
+    .segmented button.active {
+      color: var(--text);
+      background: var(--glass-hover);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px var(--glass-edge);
+    }
+    @media (prefers-color-scheme: dark) { .segmented button.active { background: rgba(255, 255, 255, 0.17); } }
+
+    .discover { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+    .discover[hidden] { display: none; }
+
+    .dsearch {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 4px 28px 14px;
+      background: linear-gradient(var(--content) 75%, transparent);
+    }
+    .dsearch .field-wrap { position: relative; max-width: 560px; margin: 0 auto; display: flex; align-items: center; }
+    .dsearch svg.i { position: absolute; left: 12px; width: 15px; height: 15px; color: var(--text-3); pointer-events: none; }
+    .dsearch input {
+      width: 100%; height: 36px; padding: 0 34px 0 36px;
+      border: none; border-radius: 18px; outline: none;
+      background: var(--group); box-shadow: inset 0 0 0 0.5px var(--group-border);
+      color: var(--text); font: inherit; font-size: 13.5px;
+      -webkit-user-select: text; user-select: text;
+      transition: box-shadow 0.15s;
+    }
+    .dsearch input::placeholder { color: var(--text-3); }
+    .dsearch input:focus { box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 40%, transparent); }
+    .dsearch .clear {
+      position: absolute; right: 10px; width: 18px; height: 18px; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      background: var(--text-3); color: var(--content);
+    }
+    .dsearch .clear svg.i { position: static; width: 9px; height: 9px; stroke-width: 2.8; color: inherit; }
+    .dsearch.has-text .clear { display: flex; }
+
+    .dbody { padding: 0 0 36px; }
+
+    .shelf { margin-bottom: 26px; }
+    .shelf h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; padding: 0 28px 10px; }
+    .shelf-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 128px;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 2px 28px 8px;
+      scroll-padding: 0 28px;
+      scroll-snap-type: x proximity;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+      gap: 22px 16px;
+      padding: 2px 28px;
+    }
+
+    .tile { scroll-snap-align: start; min-width: 0; }
+    .ticon {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 24%;
+      overflow: hidden;
+      background: var(--group);
+      box-shadow: inset 0 0 0 0.5px var(--group-border), 0 2px 8px rgba(0, 0, 0, 0.12);
+      transition: transform 0.15s;
+    }
+    .ticon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tile:hover .ticon { transform: scale(1.03); }
+    .tplay {
+      position: absolute; right: 7px; bottom: 7px;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      opacity: 0; transform: scale(0.85);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .tplay svg.i { width: 12px; height: 12px; fill: currentColor; stroke: none; margin-left: 2px; }
+    .tile:hover .tplay { opacity: 1; transform: scale(1); }
+    .tname {
+      margin-top: 8px; font-size: 12.5px; font-weight: 500; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .tmeta { font-size: 11.5px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile.skeleton .ticon, .tile.skeleton .tname { background: linear-gradient(90deg, var(--hover) 25%, var(--separator) 50%, var(--hover) 75%); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; box-shadow: none; }
+    .tile.skeleton .tname { height: 12px; border-radius: 6px; width: 80%; }
+
+    .dmessage { padding: 60px 28px; text-align: center; color: var(--text-2); }
+    .dmessage h2 { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+
+    .gpage { max-width: 680px; margin: 0 auto; padding: 0 28px; }
+    .back {
+      display: inline-flex; align-items: center; gap: 2px;
+      height: 28px; padding: 0 10px 0 4px; margin: 0 0 12px -4px;
+      border-radius: 14px; color: var(--accent); font-weight: 500;
+    }
+    .back:hover { background: var(--hover); }
+    .back svg.i { width: 15px; height: 15px; stroke-width: 2; }
+
+    .gbanner {
+      aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+      background: var(--group); box-shadow: inset 0 0 0 0.5px var(--group-border), 0 8px 30px rgba(0, 0, 0, 0.18);
+    }
+    .gbanner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gshots { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 4px; }
+    .gshots button {
+      flex: 0 0 96px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; padding: 0;
+      opacity: 0.55; box-shadow: inset 0 0 0 0.5px var(--group-border); transition: opacity 0.15s;
+    }
+    .gshots button.active, .gshots button:hover { opacity: 1; }
+    .gshots img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .ghead { display: flex; align-items: center; gap: 16px; margin: 22px 0 20px; }
+    .gicon { width: 76px; height: 76px; border-radius: 24%; flex-shrink: 0; object-fit: cover; background: var(--group); box-shadow: inset 0 0 0 0.5px var(--group-border), 0 4px 14px rgba(0, 0, 0, 0.16); }
+    .gtitle { flex: 1; min-width: 0; }
+    .gtitle h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .gtitle .by { margin-top: 3px; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+    .gtitle .by .seal { width: 15px; height: 15px; }
+    .gplay { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .gplay .capsule.primary { height: 34px; border-radius: 17px; padding: 0 22px; font-size: 14px; }
+    .gplay .as { font-size: 11.5px; color: var(--text-2); display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 8px; }
+    .gplay .as:hover { background: var(--hover); color: var(--text); }
+    .gplay .as svg.i { width: 11px; height: 11px; stroke-width: 2; }
+
+    .gdesc { padding: 12px 14px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; max-height: 220px; overflow-y: auto; }
+
+    .toast {
+      position: fixed;
+      left: calc(272px + (100% - 272px) / 2);
+      bottom: 22px;
+      transform: translate(-50%, 10px);
+      max-width: 60%;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: var(--toast);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow: var(--toast-shadow);
+      font-size: 12.5px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast svg.i { width: 15px; height: 15px; color: var(--green); stroke-width: 2; }
+    .toast.error svg.i { color: var(--red); }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-top" data-tauri-drag-region>
+      <button class="plain-btn" id="sortBtn" title="Sort">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+      </button>
+    </div>
+    <label class="search" id="search">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <input id="searchInput" type="text" placeholder="Search" autocomplete="off" spellcheck="false">
+      <button class="clear" id="clearSearch" title="Clear"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </label>
+    <div class="section-label" data-tauri-drag-region><span>Accounts</span><span id="count"></span></div>
+    <div class="accounts" id="accounts" tabindex="0"></div>
+  </aside>
+
+  <main class="content">
+    <div class="toolbar" data-tauri-drag-region>
+      <div class="spacer" data-tauri-drag-region></div>
+      <div class="segmented" id="tabs">
+        <button data-tab="account">Account</button>
+        <button data-tab="discover">Discover</button>
+      </div>
+      <div class="spacer" data-tauri-drag-region></div>
+      <div class="glass-group">
+        <button id="refreshBtn" title="Check All Accounts (⌘R)">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.35-5.65"/><path d="M20 4v4.5h-4.5"/></svg>
+        </button>
+        <button id="killBtn" title="Quit All Roblox Instances">
+          <svg class="i" viewBox="0 0 24 24"><path d="M8.6 3.5h6.8l5.1 5.1v6.8l-5.1 5.1H8.6l-5.1-5.1V8.6z"/><path d="m9.5 9.5 5 5M14.5 9.5l-5 5"/></svg>
+        </button>
+        <button id="moreBtn" title="More">
+          <svg class="i" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <button class="glass-btn" id="addBtn" title="Add Account (⌘N)">
+        <svg class="i" viewBox="0 0 24 24" style="stroke-width:1.9"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div class="detail" id="detail"></div>
+    <div class="discover" id="discover" hidden>
+      <div class="dsearch" id="dsearch">
+        <div class="field-wrap">
+          <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <input id="gameSearch" type="text" placeholder="Search Roblox experiences" autocomplete="off" spellcheck="false">
+          <button class="clear" id="clearGameSearch" title="Clear"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+      <div class="dbody" id="discoverBody"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">
+    <svg class="i" viewBox="0 0 24 24" id="toastIcon"></svg>
+    <span id="toastText"></span>
+  </div>
+
+  <script>
+    const { invoke } = window.__TAURI__.core;
+    const nativeMenu = window.__TAURI__.menu;
+
+    async function call(command, args) {
+      try {
+        return await invoke(command, args);
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+
+    const ICONS = {
+      play: '<svg class="i" viewBox="0 0 24 24"><path d="M7 4.8v14.4c0 .8.9 1.3 1.6.9l11.5-7.2c.6-.4.6-1.4 0-1.8L8.6 3.9c-.7-.4-1.6.1-1.6.9z"/></svg>',
+      globe: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>',
+      alert: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2v.3"/></svg>',
+      chevron: '<svg class="i chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>',
+      people: '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg>',
+      search: '<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>',
+      plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      check: '<path d="M5 12.5 10 17.5 19 7"/>',
+      cross: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2v.3"/>',
+    };
+
+    const SORTS = [
+      { id: 'date-desc', label: 'Newest First' },
+      { id: 'date-asc', label: 'Oldest First' },
+      { id: 'name-asc', label: 'Name (A-Z)' },
+      { id: 'name-desc', label: 'Name (Z-A)' },
+    ];
+
+    const store = {
+      get(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } },
+      set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+    };
+
+    const state = {
+      tab: store.get('altdeck.tab', 'account'),
+      games: {
+        shelves: null,
+        query: '',
+        results: null,
+        open: null,
+        pages: new Map(),
+        shot: 0,
+        listScroll: 0,
+      },
+      accounts: [],
+      query: '',
+      sort: store.get('altdeck.sort', 'date-desc'),
+      selected: new Set(),
+      anchor: null,
+      launching: new Set(),
+      loaded: false,
+      checking: false,
+      details: new Map(),
+    };
+
+    const sidebarList = $('accounts');
+    const detail = $('detail');
+    const searchInput = $('searchInput');
+
+    function visibleAccounts() {
+      const q = state.query.toLowerCase();
+      const shown = state.accounts.filter((a) => !q
+        || (a.name || '').toLowerCase().includes(q)
+        || (a.displayName || '').toLowerCase().includes(q));
+
+      const byName = (a, b) => (a.displayName || a.name || '').localeCompare(b.displayName || b.name || '', undefined, { sensitivity: 'base' });
+      const byDate = (a, b) => new Date(a.addedAt || 0) - new Date(b.addedAt || 0);
+      const cmp = { 'date-desc': (a, b) => byDate(b, a), 'date-asc': byDate, 'name-asc': byName, 'name-desc': (a, b) => byName(b, a) }[state.sort] || byDate;
+      return shown.sort(cmp);
+    }
+
+    const byId = (id) => state.accounts.find((a) => a.userId === id);
+    const handle = (a) => `@${a.name || 'unknown'}`;
+    const title = (a) => a.displayName || a.name || 'Unknown User';
+    const selectedAccounts = () => [...state.selected].map(byId).filter(Boolean);
+
+    function avatarHtml(a, extraClass = '') {
+      const initial = escapeHtml((title(a)[0] || '?').toUpperCase());
+      const img = a.thumbnail
+        ? `<img src="${escapeHtml(a.thumbnail)}" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${initial}'))">`
+        : initial;
+      return `<div class="avatar ${extraClass}">${img}</div>`;
+    }
+
+    function longDate(iso) {
+      if (!iso) return '-';
+      return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    const fmt = new Intl.NumberFormat();
+    const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+    const SKEL = '<span class="skel"></span>';
+    const SEAL = '<svg class="seal" viewBox="0 0 24 24"><path fill="var(--accent)" d="M12 1.8l2.4 1.8 3-.2 1 2.8 2.6 1.6-.7 2.9 1.4 2.6-2.1 2.2-.1 3-2.9.7-1.7 2.5-2.8-1-2.8 1-1.7-2.5-2.9-.7-.1-3L1.3 13l1.4-2.6L2 7.6l2.6-1.6 1-2.8 3 .2z"/><path d="m8 12.3 2.7 2.7L16.3 9.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function loadDetails(id, force = false) {
+      if (!force && state.details.has(id)) return;
+      state.details.set(id, 'loading');
+      call('get_account_details', { userId: id })
+        .then((data) => state.details.set(id, data))
+        .catch(() => state.details.set(id, {}))
+        .finally(() => { if (state.selected.size === 1 && state.selected.has(id)) renderDetail(); });
+    }
+
+    function since(iso) {
+      const months = Math.floor((Date.now() - new Date(iso)) / (30.44 * 86400000));
+      if (months < 1) return 'this month';
+      if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+      const years = Math.floor(months / 12);
+      return `${years} year${years === 1 ? '' : 's'} ago`;
+    }
+
+    function presenceText(d) {
+      const p = d.presence?.userPresences?.[0];
+      if (!p) return null;
+      return [
+        ['Offline', ''],
+        ['Online', 'ok'],
+        [p.lastLocation ? `Playing ${p.lastLocation}` : 'In Game', 'ok'],
+        ['In Roblox Studio', 'ok'],
+        ['Invisible', ''],
+      ][p.userPresenceType] || null;
+    }
+
+    function summarize(d) {
+      const n = (v) => (typeof v === 'number' ? v : undefined);
+      const games = d.games?.data;
+      const history = (d.usernameHistory?.data || []).map((h) => h.name).filter(Boolean);
+      const primary = d.primaryGroup?.group ? `${d.primaryGroup.group.name} · ${d.primaryGroup.role?.name ?? ''}` : null;
+      return {
+        robux: n(d.currency?.robux),
+        friends: n(d.friends?.count),
+        followers: n(d.followers?.count),
+        following: n(d.followings?.count),
+        premium: typeof d.premium === 'boolean' ? d.premium : undefined,
+        verified: !!d.profile?.hasVerifiedBadge,
+        banned: !!d.profile?.isBanned,
+        bio: d.profile ? (d.profile.description || '') : undefined,
+        created: d.profile?.created,
+        headshot: d.headshot?.data?.[0]?.state === 'Completed' ? d.headshot.data[0].imageUrl : null,
+        previousNames: history,
+        primaryGroup: primary,
+        groups: Array.isArray(d.groups?.data) ? d.groups.data.length : undefined,
+        games: Array.isArray(games) ? `${games.length}${d.games.nextPageCursor ? '+' : ''}` : undefined,
+        presence: presenceText(d),
+        email: d.email ? { address: d.email.emailAddress || null, verified: !!d.email.verified } : undefined,
+        phone: d.phone ? { number: d.phone.phone ? `${d.phone.prefix ? `+${String(d.phone.prefix).replace(/^\+/, '')} ` : ''}${d.phone.phone}` : null, verified: !!d.phone.isVerified } : undefined,
+        voice: d.voice ? !!d.voice.isVerifiedForVoice : undefined,
+      };
+    }
+
+    const discoverEl = $('discover');
+    const discoverBody = $('discoverBody');
+    const gameSearch = $('gameSearch');
+    const gNum = new Intl.NumberFormat();
+    const gCompact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+    const BACK = '<svg class="i" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg>';
+    const DOWN = '<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+    const VERIFIED = '<svg class="seal" viewBox="0 0 24 24"><path fill="var(--accent)" d="M12 1.8l2.4 1.8 3-.2 1 2.8 2.6 1.6-.7 2.9 1.4 2.6-2.1 2.2-.1 3-2.9.7-1.7 2.5-2.8-1-2.8 1-1.7-2.5-2.9-.7-.1-3L1.3 13l1.4-2.6L2 7.6l2.6-1.6 1-2.8 3 .2z"/><path d="m8 12.3 2.7 2.7L16.3 9.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const playable = () => selectedAccounts().filter((a) => a.status !== 'expired');
+
+    function playLabel() {
+      const p = playable();
+      if (!p.length) return { text: 'Play', sub: 'Select an account to play', ok: false };
+      if (p.length === 1) return { text: 'Play', sub: `as ${handle(p[0])}`, ok: true };
+      return { text: `Play x${p.length}`, sub: `with ${p.length} accounts`, ok: true };
+    }
+
+    function updatePlayButtons() {
+      const label = playLabel();
+      for (const el of discoverBody.querySelectorAll('[data-play-sub]')) el.firstChild.textContent = label.sub + ' ';
+      for (const el of discoverBody.querySelectorAll('[data-play-text]')) el.lastChild.textContent = label.text;
+    }
+
+    function setTab(tab) {
+      if (state.tab === tab) return;
+      state.tab = tab;
+      store.set('altdeck.tab', tab);
+      render();
+      if (tab === 'discover') {
+        renderDiscover();
+        if (state.games.shelves === null) loadShelves();
+      }
+    }
+
+    async function loadShelves() {
+      state.games.shelves = 'loading';
+      renderDiscover();
+      try {
+        state.games.shelves = await call('discover_games');
+      } catch {
+        state.games.shelves = 'error';
+      }
+      if (!state.games.query && state.games.open === null) renderDiscover();
+    }
+
+    let searchTimer, searchSeq = 0;
+    function searchGames(query, immediate = false) {
+      clearTimeout(searchTimer);
+      state.games.query = query;
+      $('dsearch').classList.toggle('has-text', query.length > 0);
+      state.games.open = null;
+      if (!query) { state.games.results = null; renderDiscover(); return; }
+      const run = async () => {
+        const seq = ++searchSeq;
+        state.games.results = 'loading';
+        renderDiscover();
+        let results;
+        try { results = await call('search_games', { query }); } catch { results = 'error'; }
+        if (seq !== searchSeq) return;
+        state.games.results = results;
+        renderDiscover();
+      };
+      if (immediate) run(); else searchTimer = setTimeout(run, 350);
+    }
+
+    function openGame(universeId) {
+      state.games.listScroll = discoverEl.scrollTop;
+      state.games.open = universeId;
+      state.games.shot = 0;
+      if (!state.games.pages.has(universeId) || state.games.pages.get(universeId) === 'error') {
+        state.games.pages.set(universeId, 'loading');
+        call('game_details', { universeId })
+          .then((d) => state.games.pages.set(universeId, d))
+          .catch(() => state.games.pages.set(universeId, 'error'))
+          .finally(() => { if (state.games.open === universeId) renderDiscover(); });
+      }
+      renderDiscover();
+      discoverEl.scrollTop = 0;
+    }
+
+    function closeGame() {
+      state.games.open = null;
+      renderDiscover();
+      discoverEl.scrollTop = state.games.listScroll;
+    }
+
+    function playGame(game, ids = null) {
+      const targets = ids || playable().map((a) => a.userId);
+      if (!targets.length) {
+        alertError('No Account Selected', 'Select a signed-in account in the sidebar, then press Play. Select several accounts to join with all of them.');
+        return;
+      }
+      launch(targets, game);
+    }
+
+    function openGameOnWeb(game) {
+      const account = playable()[0] || state.accounts.find((a) => a.status !== 'expired') || state.accounts[0];
+      if (!account) { alertError('No Accounts', 'Add an account first.'); return; }
+      call('open_website', { userId: account.userId, path: `/games/${game.placeId}` })
+        .catch((e) => alertError("Couldn't Open Roblox.com", e.message));
+    }
+
+    function playAsMenu(game) {
+      const usable = state.accounts.filter((a) => a.status !== 'expired');
+      return {
+        text: 'Play As',
+        items: usable.length
+          ? usable.map((a) => ({ id: `as-${a.userId}`, text: `${title(a)} (${handle(a)})`, action: () => playGame(game, [a.userId]) }))
+          : [{ id: 'none', text: 'No signed-in accounts', enabled: false }],
+      };
+    }
+
+    function showGameMenu(game) {
+      const label = playLabel();
+      popup([
+        { id: 'play', text: label.ok ? `Play ${label.sub}` : 'Play', enabled: label.ok, action: () => playGame(game) },
+        playAsMenu(game),
+        { item: 'Separator' },
+        { id: 'details', text: 'Show Details', action: () => openGame(game.universeId) },
+        { id: 'web', text: 'Open on Roblox.com', action: () => openGameOnWeb(game) },
+      ]);
+    }
+
+    function tileHtml(g) {
+      const meta = [g.playing != null ? `${gCompact.format(g.playing)} playing` : '', g.rating != null ? `${g.rating}%` : ''].filter(Boolean).join(' · ');
+      return `
+        <div class="tile" data-universe="${g.universeId}" data-place="${g.placeId}" data-name="${escapeHtml(g.name)}" title="${escapeHtml(g.name)}">
+          <div class="ticon">
+            ${g.icon ? `<img src="${escapeHtml(g.icon)}" alt="" loading="lazy" draggable="false">` : ''}
+            <button class="tplay" data-action="play" title="Play">${ICONS.play}</button>
+          </div>
+          <div class="tname">${escapeHtml(g.name)}</div>
+          <div class="tmeta">${meta}</div>
+        </div>`;
+    }
+
+    const skeletonTiles = (n) => Array.from({ length: n }, () => '<div class="tile skeleton"><div class="ticon"></div><div class="tname"></div></div>').join('');
+
+    function renderDiscover() {
+      if (state.tab !== 'discover') return;
+      const g = state.games;
+      if (g.open !== null) { discoverBody.innerHTML = gamePageHtml(g.pages.get(g.open)); return; }
+
+      if (g.query) {
+        if (g.results === 'loading' || g.results === null) discoverBody.innerHTML = `<div class="grid">${skeletonTiles(12)}</div>`;
+        else if (g.results === 'error') discoverBody.innerHTML = '<div class="dmessage"><h2>Couldn\'t Search</h2><p>Check your connection and try again.</p></div>';
+        else if (!g.results.length) discoverBody.innerHTML = `<div class="dmessage"><h2>No Results</h2><p>Nothing on Roblox matches "${escapeHtml(g.query)}".</p></div>`;
+        else discoverBody.innerHTML = `<div class="grid">${g.results.map(tileHtml).join('')}</div>`;
+        return;
+      }
+
+      if (g.shelves === 'loading' || g.shelves === null) {
+        discoverBody.innerHTML = [1, 2].map(() => `<section class="shelf"><h2>&nbsp;</h2><div class="shelf-row">${skeletonTiles(8)}</div></section>`).join('');
+      } else if (g.shelves === 'error') {
+        discoverBody.innerHTML = '<div class="dmessage"><h2>Couldn\'t Load Games</h2><p>Check your connection.</p><button class="capsule secondary" data-action="retry" style="margin-top:14px">Try Again</button></div>';
+      } else {
+        discoverBody.innerHTML = g.shelves.map((s) => `
+          <section class="shelf">
+            <h2>${escapeHtml(s.name)}</h2>
+            <div class="shelf-row">${s.games.map(tileHtml).join('')}</div>
+          </section>`).join('');
+      }
+    }
+
+    function gamePageHtml(page) {
+      const back = `<button class="back" data-action="back">${BACK}${state.games.query ? 'Results' : 'Discover'}</button>`;
+      if (page === 'loading' || page === undefined) {
+        return `<div class="gpage">${back}<div class="gbanner"></div><div class="ghead"><div class="gicon"></div><div class="gtitle"><span class="skel" style="width:200px;height:18px"></span></div></div></div>`;
+      }
+      if (page === 'error') {
+        return `<div class="gpage">${back}<div class="dmessage"><h2>Couldn't Load This Experience</h2></div></div>`;
+      }
+
+      const d = page.game;
+      const game = { universeId: d.id, placeId: d.rootPlaceId, name: d.name };
+      const shots = page.screenshots || [];
+      const shot = shots[state.games.shot] || shots[0];
+      const label = playLabel();
+      const date = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+      const row = (k, v) => v == null || v === '' ? '' : `<div class="field"><span class="label">${k}</span><span class="value">${v}</span></div>`;
+      const stat = (cap, v) => `<div class="stat"><div class="num" title="${v == null ? '' : gNum.format(v)}">${v == null ? '-' : gCompact.format(v)}</div><div class="cap">${cap}</div></div>`;
+
+      return `
+        <div class="gpage" data-universe="${game.universeId}" data-place="${game.placeId}" data-name="${escapeHtml(game.name)}">
+          ${back}
+          <div class="gbanner">${shot ? `<img src="${escapeHtml(shot)}" alt="" draggable="false">` : ''}</div>
+          ${shots.length > 1 ? `<div class="gshots">${shots.map((u, i) => `<button data-action="shot" data-index="${i}" class="${i === state.games.shot ? 'active' : ''}"><img src="${escapeHtml(u)}" alt="" loading="lazy" draggable="false"></button>`).join('')}</div>` : ''}
+
+          <div class="ghead">
+            ${page.icon ? `<img class="gicon" src="${escapeHtml(page.icon)}" alt="" draggable="false">` : '<div class="gicon"></div>'}
+            <div class="gtitle">
+              <h1>${escapeHtml(d.name)}</h1>
+              <div class="by">${escapeHtml(d.creator?.name || '')}${d.creator?.hasVerifiedBadge ? VERIFIED : ''}</div>
+            </div>
+            <div class="gplay">
+              <button class="capsule primary" data-action="play" data-play-text>${ICONS.play}${label.text}</button>
+              <button class="as" data-action="play-as" data-play-sub>${label.sub} ${DOWN}</button>
+            </div>
+          </div>
+
+          <div class="stats">
+            ${stat('Playing', d.playing)}
+            ${stat('Visits', d.visits)}
+            <div class="stat"><div class="num">${page.rating != null ? `${page.rating}%` : '-'}</div><div class="cap">Rating</div></div>
+            ${stat('Favorites', d.favoritedCount)}
+          </div>
+
+          ${d.description ? `<div class="group-title">Description</div><div class="group"><div class="gdesc selectable">${escapeHtml(d.description)}</div></div>` : ''}
+
+          <div class="group-title">Information</div>
+          <div class="group">
+            ${row('Genre', escapeHtml(d.genre_l1 || d.genre || ''))}
+            ${row('Server Size', d.maxPlayers ? `${d.maxPlayers} players` : '')}
+            ${row('Created', date(d.created))}
+            ${row('Updated', date(d.updated))}
+            ${row('Place ID', `<span class="selectable">${d.rootPlaceId}</span>`)}
+          </div>
+
+          <div class="group">
+            <button class="field action" data-action="web"><span class="label">Open on Roblox.com</span>${ICONS.chevron}</button>
+          </div>
+        </div>`;
+    }
+
+    const gameFrom = (el) => ({ universeId: Number(el.dataset.universe), placeId: Number(el.dataset.place), name: el.dataset.name });
+
+    discoverBody.addEventListener('click', (e) => {
+      const button = e.target.closest('button[data-action]');
+      const tile = e.target.closest('.tile:not(.skeleton)');
+      const page = e.target.closest('.gpage');
+      const game = tile ? gameFrom(tile) : page?.dataset.place ? gameFrom(page) : null;
+
+      if (button) {
+        const action = button.dataset.action;
+        if (action === 'retry') return loadShelves();
+        if (action === 'back') return closeGame();
+        if (action === 'play' && game) return playGame(game);
+        if (action === 'play-as' && game) return popup([playAsMenu(game)].flatMap((m) => m.items));
+        if (action === 'web' && game) return openGameOnWeb(game);
+        if (action === 'shot') { state.games.shot = Number(button.dataset.index); renderDiscover(); }
+        return;
+      }
+      if (tile) openGame(game.universeId);
+    });
+
+    discoverBody.addEventListener('dblclick', (e) => {
+      const tile = e.target.closest('.tile:not(.skeleton)');
+      if (tile && !e.target.closest('button')) playGame(gameFrom(tile));
+    });
+
+    discoverBody.addEventListener('contextmenu', (e) => {
+      const tile = e.target.closest('.tile:not(.skeleton)');
+      if (!tile) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showGameMenu(gameFrom(tile));
+    });
+
+    gameSearch.addEventListener('input', () => searchGames(gameSearch.value.trim()));
+    gameSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); searchGames(gameSearch.value.trim(), true); }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (gameSearch.value) { gameSearch.value = ''; searchGames(''); } else gameSearch.blur();
+      }
+    });
+    $('clearGameSearch').addEventListener('click', (e) => {
+      e.preventDefault();
+      gameSearch.value = '';
+      searchGames('');
+      gameSearch.focus();
+    });
+    for (const b of document.querySelectorAll('#tabs button')) b.addEventListener('click', () => setTab(b.dataset.tab));
+
+    function render() {
+      renderSidebar();
+      if (state.tab === 'account') renderDetail();
+      else updatePlayButtons();
+      renderToolbar();
+    }
+
+    function renderSidebar() {
+      const shown = visibleAccounts();
+      $('count').textContent = state.accounts.length || '';
+      $('search').classList.toggle('has-text', state.query.length > 0);
+
+      if (!state.loaded) { sidebarList.innerHTML = ''; return; }
+      if (!state.accounts.length) { sidebarList.innerHTML = '<div class="sidebar-empty">No accounts</div>'; return; }
+      if (!shown.length) { sidebarList.innerHTML = '<div class="sidebar-empty">No Results</div>'; return; }
+
+      sidebarList.innerHTML = shown.map((a) => {
+        const expired = a.status === 'expired';
+        return `
+          <div class="item${state.selected.has(a.userId) ? ' selected' : ''}" data-id="${a.userId}">
+            ${avatarHtml(a)}
+            <div class="text">
+              <div class="display">${escapeHtml(title(a))}</div>
+              <div class="handle">${escapeHtml(handle(a))}</div>
+            </div>
+            ${expired ? `<span class="badge" title="Session expired">${ICONS.alert}</span>` : ''}
+            <button class="quick" data-action="launch" title="Launch" ${expired || state.launching.has(a.userId) ? 'disabled' : ''}>${ICONS.play}</button>
+          </div>`;
+      }).join('');
+    }
+
+    function statusHtml(a) {
+      if (state.launching.has(a.userId)) return '<div class="status checking"><span class="dot"></span>Launching...</div>';
+      return {
+        ok: '<div class="status ok"><span class="dot"></span>Signed In</div>',
+        expired: '<div class="status expired"><span class="dot"></span>Session Expired</div>',
+        checking: '<div class="status checking"><span class="dot"></span>Checking...</div>',
+      }[a.status];
+    }
+
+    function renderDetail() {
+      if (!state.loaded) { detail.innerHTML = ''; return; }
+
+      if (!state.accounts.length) {
+        detail.innerHTML = `
+          <div class="placeholder">
+            <div class="glyph">${ICONS.people}</div>
+            <h2>No Accounts</h2>
+            <p>Sign in with Roblox to add an account. You can add as many as you like and launch them side by side.</p>
+            <button class="capsule primary" data-action="add">${ICONS.plus}Add Account</button>
+          </div>`;
+        return;
+      }
+
+      const selected = selectedAccounts();
+
+      if (!selected.length) {
+        detail.innerHTML = `
+          <div class="placeholder">
+            <div class="glyph">${ICONS.people}</div>
+            <h2>No Account Selected</h2>
+            <p>Choose an account in the sidebar.</p>
+          </div>`;
+        return;
+      }
+
+      if (selected.length > 1) {
+        const usable = selected.filter((a) => a.status !== 'expired');
+        const expiredCount = selected.length - usable.length;
+        detail.innerHTML = `
+          <div class="card">
+            <div class="hero">
+              <div class="stack">${selected.slice(0, 4).map((a) => avatarHtml(a)).join('')}</div>
+              <h1>${selected.length} Accounts</h1>
+              <div class="handle">${escapeHtml(selected.slice(0, 3).map(handle).join(', '))}${selected.length > 3 ? ` and ${selected.length - 3} more` : ''}</div>
+              ${expiredCount ? `<div class="status expired"><span class="dot"></span>${expiredCount} expired, ${expiredCount === 1 ? 'it' : 'they'} will be skipped</div>` : ''}
+              <div class="buttons">
+                <button class="capsule primary" data-action="launch-selected" ${usable.length ? '' : 'disabled'}>${ICONS.play}Launch ${usable.length === selected.length ? 'All' : usable.length}</button>
+                <button class="capsule secondary" data-action="web-selected" ${usable.length ? '' : 'disabled'}>${ICONS.globe}Open Websites</button>
+              </div>
+            </div>
+            <div class="group">
+              <button class="field destructive" data-action="delete-selected"><span class="label">Delete ${selected.length} Accounts...</span></button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const a = selected[0];
+      const expired = a.status === 'expired';
+      const launching = state.launching.has(a.userId);
+      loadDetails(a.userId);
+      const raw = state.details.get(a.userId);
+      const loading = raw === 'loading' || raw === undefined;
+      const info = loading ? {} : summarize(raw);
+
+      const field = (label, v, cls = '') => {
+        if (v === undefined || v === null) return loading ? `<div class="field"><span class="label">${label}</span><span class="value">${SKEL}</span></div>` : '';
+        return `<div class="field"><span class="label">${label}</span><span class="value ${cls}">${v}</span></div>`;
+      };
+      const stat = (cap, v, short = false) => `
+        <div class="stat"><div class="num${v === undefined && !loading ? ' dim' : ''}" title="${v === undefined ? '' : fmt.format(v)}">${
+          v === undefined ? (loading ? SKEL : '-') : (short && v >= 10000 ? compact.format(v) : fmt.format(v))
+        }</div><div class="cap">${cap}</div></div>`;
+      const group = (titleText, rows) => rows.trim() ? `<div class="group-title">${titleText}</div><div class="group">${rows}</div>` : '';
+
+      const presence = info.presence;
+      const status = expired || launching || a.status === 'checking' || !presence
+        ? statusHtml(a)
+        : `<div class="status ${presence[1]}"><span class="dot"></span>${escapeHtml(presence[0])}</div>`;
+
+      const avatar = info.headshot ? avatarHtml({ ...a, thumbnail: info.headshot }) : avatarHtml(a);
+      const tags = [
+        info.premium ? '<span class="tag premium">Premium</span>' : '',
+        info.banned ? '<span class="tag banned">Banned</span>' : '',
+      ].join('');
+
+      const about = [
+        info.bio === undefined ? (loading ? `<div class="bio">${SKEL}</div>` : '')
+          : `<div class="bio selectable${info.bio ? '' : ' empty'}">${info.bio ? escapeHtml(info.bio) : 'No bio'}</div>`,
+        field('Joined', info.created && `${escapeHtml(longDate(info.created))} <span class="sub">· ${since(info.created)}</span>`),
+        info.previousNames?.length ? field('Previous Usernames', escapeHtml(info.previousNames.join(', '))) : '',
+        info.primaryGroup ? field('Primary Group', escapeHtml(info.primaryGroup)) : '',
+        field('Groups', info.groups !== undefined ? fmt.format(info.groups) : undefined),
+        field('Experiences Created', info.games),
+      ].join('');
+
+      const linked = (v, text, okText, noText) => v === undefined ? undefined
+        : `${text ? `<span class="selectable">${escapeHtml(text)}</span> <span class="sub">· ${v.verified ? okText : noText}</span>` : '<span class="sub">None</span>'}`;
+      const account = [
+        field('Email', linked(info.email, info.email?.address, 'Verified', 'Unverified')),
+        field('Phone', linked(info.phone, info.phone?.number, 'Verified', 'Unverified')),
+        field('Voice Chat', info.voice === undefined ? undefined : (info.voice ? 'Enabled' : '<span class="sub">Not enabled</span>')),
+      ].join('');
+
+      detail.innerHTML = `
+        <div class="card">
+          <div class="hero">
+            ${avatar}
+            <div class="name-line"><h1>${escapeHtml(title(a))}</h1>${info.verified ? SEAL : ''}</div>
+            <div class="handle">${escapeHtml(handle(a))}</div>
+            ${info.email?.address ? `<div class="handle email selectable">${escapeHtml(info.email.address)}</div>` : ''}
+            ${tags ? `<div class="tags">${tags}</div>` : ''}
+            ${status}
+            <div class="buttons">
+              ${expired
+                ? `<button class="capsule primary" data-action="signin">Sign In Again</button>`
+                : `<button class="capsule primary" data-action="launch" ${launching ? 'disabled' : ''}>${launching ? '<span class="spinner"></span>Launching' : `${ICONS.play}Launch`}</button>
+                   <button class="capsule secondary" data-action="web">${ICONS.globe}Roblox.com</button>`}
+            </div>
+          </div>
+
+          <div class="stats">
+            ${stat('Robux', info.robux)}
+            ${stat('Friends', info.friends, true)}
+            ${stat('Followers', info.followers, true)}
+            ${stat('Following', info.following, true)}
+          </div>
+          ${expired ? '<p class="footnote">Sign in again to see this account\'s Robux balance.</p>' : ''}
+
+          ${group('About', about)}
+          ${group('Account', account)}
+          ${group('AltDeck', `
+            <div class="field"><span class="label">User ID</span><span class="value selectable">${a.userId}</span></div>
+            <div class="field"><span class="label">Added to AltDeck</span><span class="value">${escapeHtml(longDate(a.addedAt))}</span></div>`)}
+
+          <div class="group">
+            <button class="field action" data-action="profile"><span class="label">View Profile on Roblox</span>${ICONS.chevron}</button>
+            <button class="field action" data-action="settings"><span class="label">Account Settings on Roblox</span>${ICONS.chevron}</button>
+            ${expired ? '' : `<button class="field action" data-action="signin"><span class="label">Refresh Sign-In...</span>${ICONS.chevron}</button>`}
+            <button class="field destructive" data-action="delete"><span class="label">Delete Account...</span></button>
+          </div>
+        </div>`;
+    }
+
+    function renderToolbar() {
+      for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('active', b.dataset.tab === state.tab);
+      $('detail').hidden = state.tab !== 'account';
+      $('discover').hidden = state.tab !== 'discover';
+      $('refreshBtn').disabled = !state.accounts.length || state.checking;
+      $('refreshBtn').classList.toggle('spin', state.checking);
+    }
+
+    let toastTimer;
+    function toast(message, isError = false) {
+      const el = $('toast');
+      $('toastText').textContent = message;
+      $('toastIcon').innerHTML = isError ? ICONS.cross : ICONS.check;
+      el.classList.toggle('error', isError);
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), isError ? 4000 : 2400);
+    }
+
+    function alertError(titleText, message) {
+      return call('show_alert', { kind: 'error', title: titleText, message: String(message) }).catch(() => {});
+    }
+
+    const confirmAction = (titleText, message, okLabel) =>
+      call('confirm', { title: titleText, message, okLabel }).catch(() => false);
+
+    function ensureSelection() {
+      const shown = visibleAccounts();
+      for (const id of [...state.selected]) if (!byId(id)) state.selected.delete(id);
+      if (!state.selected.size && shown.length) {
+        state.selected = new Set([shown[0].userId]);
+        state.anchor = shown[0].userId;
+      }
+    }
+
+    async function load() {
+      try {
+        const stored = await call('list_accounts');
+        state.accounts = stored.map((a) => ({ ...a, status: 'checking' }));
+      } catch (error) {
+        state.accounts = [];
+        alertError("Couldn't Load Accounts", error.message);
+      }
+      state.loaded = true;
+      ensureSelection();
+      render();
+      if (state.accounts.length) await validate();
+    }
+
+    async function validate() {
+      if (state.checking) return;
+      state.checking = true;
+      state.details.clear();
+      state.accounts.forEach((a) => { a.status = 'checking'; });
+      render();
+      try {
+        const fresh = await call('get_accounts');
+        const freshById = new Map(fresh.map((a) => [a.userId, a]));
+
+        state.accounts = state.accounts.map((a) => {
+          const f = freshById.get(a.userId);
+          if (!f) return { ...a, status: a.status === 'checking' ? 'ok' : a.status };
+          const { expired, ...rest } = f;
+          return { ...rest, status: expired ? 'expired' : 'ok' };
+        });
+      } catch (error) {
+        state.accounts.forEach((a) => { if (a.status === 'checking') a.status = 'ok'; });
+        toast(`Couldn't check accounts: ${error.message}`, true);
+      } finally {
+        state.checking = false;
+        render();
+      }
+    }
+
+    let launchQueue = Promise.resolve();
+
+    function launch(ids, game = null) {
+      const targets = ids.map(byId).filter((a) => a && a.status !== 'expired' && !state.launching.has(a.userId));
+      if (!targets.length) return launchQueue;
+      targets.forEach((a) => state.launching.add(a.userId));
+      render();
+
+      launchQueue = launchQueue.then(async () => {
+        for (const a of targets) {
+          try {
+            await call('launch_account', { userId: a.userId, placeId: game?.placeId ?? null });
+            toast(game ? `Launched ${handle(a)} into ${game.name}` : `Launched ${handle(a)}`);
+            await sleep(1000);
+          } catch (error) {
+            state.launching.clear();
+            render();
+            alertError("Couldn't Launch Roblox", error.message);
+            return;
+          } finally {
+            state.launching.delete(a.userId);
+            render();
+          }
+        }
+      });
+      return launchQueue;
+    }
+
+    async function openWebsites(ids) {
+      for (const a of ids.map(byId).filter((a) => a && a.status !== 'expired')) {
+        try {
+          await call('open_website', { userId: a.userId });
+        } catch (error) {
+          alertError("Couldn't Open Website", error.message);
+          return;
+        }
+      }
+    }
+
+    async function remove(ids) {
+      const targets = ids.map(byId).filter(Boolean);
+      if (!targets.length) return;
+      const ok = targets.length === 1
+        ? await confirmAction(`Delete ${handle(targets[0])}?`, 'This account will be removed from AltDeck. You can add it again at any time by signing in.', 'Delete')
+        : await confirmAction(`Delete ${targets.length} Accounts?`, 'These accounts will be removed from AltDeck. You can add them again at any time by signing in.', 'Delete');
+      if (!ok) return;
+
+      try {
+        const shown = visibleAccounts().map((a) => a.userId);
+        const firstIndex = Math.min(...targets.map((a) => shown.indexOf(a.userId)).filter((i) => i >= 0));
+        const remaining = await call('delete_accounts', { userIds: targets.map((a) => a.userId) });
+        const keep = new Set(remaining.map((a) => a.userId));
+        state.accounts = state.accounts.filter((a) => keep.has(a.userId));
+
+        const next = visibleAccounts();
+        state.selected = next.length ? new Set([next[Math.min(firstIndex, next.length - 1)].userId]) : new Set();
+        state.anchor = [...state.selected][0] ?? null;
+        render();
+        toast(targets.length === 1 ? `Deleted ${handle(targets[0])}` : `Deleted ${targets.length} accounts`);
+      } catch (error) {
+        alertError("Couldn't Delete", error.message);
+      }
+    }
+
+    let adding = false;
+    async function addAccount() {
+      if (adding) return;
+      adding = true;
+      $('addBtn').disabled = true;
+      try {
+        const result = await call('open_login_window');
+        if (!result) return;
+        if (result.error) {
+          const forbidden = result.error.type === 'forbidden';
+          alertError(forbidden ? 'Access Forbidden' : "Couldn't Add Account",
+            forbidden ? 'Roblox refused access to this account. It may be banned or locked.' : result.error.message);
+          return;
+        }
+        const existing = state.accounts.findIndex((a) => a.userId === result.userId);
+        const account = { ...result, status: 'ok' };
+        if (existing >= 0) state.accounts[existing] = account;
+        else state.accounts.push(account);
+        state.selected = new Set([account.userId]);
+        state.anchor = account.userId;
+        render();
+        toast(existing >= 0 ? `Refreshed ${handle(account)}` : `Added ${handle(account)}`);
+      } catch (error) {
+        alertError("Couldn't Add Account", error.message);
+      } finally {
+        adding = false;
+        $('addBtn').disabled = false;
+      }
+    }
+
+    async function importAccounts() {
+      try {
+        const result = await call('import_accounts');
+        if (result.cancelled) return;
+        if (result.imported > 0) {
+          toast(`Imported ${result.imported} account${result.imported === 1 ? '' : 's'}`);
+          await load();
+        } else {
+          toast('No new accounts to import');
+        }
+      } catch (error) {
+        alertError("Couldn't Import", error.message);
+      }
+    }
+
+    async function exportAccounts() {
+      try {
+        const result = await call('export_accounts');
+        if (result.success) toast(`Exported ${result.count} account${result.count === 1 ? '' : 's'}`);
+      } catch (error) {
+        alertError("Couldn't Export", error.message);
+      }
+    }
+
+    async function killAll() {
+      $('killBtn').disabled = true;
+      try {
+        const { count } = await call('kill_all_roblox');
+        toast(count ? `Quit ${count} Roblox instance${count === 1 ? '' : 's'}` : "Roblox isn't running");
+      } catch (error) {
+        alertError("Couldn't Quit Roblox", error.message);
+      } finally {
+        $('killBtn').disabled = false;
+      }
+    }
+
+    async function popup(items) {
+      if (!nativeMenu) return;
+      try {
+        const menu = await nativeMenu.Menu.new({ items });
+        await menu.popup();
+      } catch (error) {
+        console.error('Menu error:', error);
+      }
+    }
+
+    function showItemMenu(id) {
+      if (!state.selected.has(id)) {
+        state.selected = new Set([id]);
+        state.anchor = id;
+        render();
+      }
+      const ids = [...state.selected];
+      const targets = selectedAccounts();
+      const usable = targets.some((a) => a.status !== 'expired');
+      const many = targets.length > 1;
+
+      const items = [
+        { id: 'launch', text: many ? `Launch ${targets.length} Accounts` : 'Launch', enabled: usable, action: () => launch(ids) },
+        { id: 'web', text: many ? 'Open Websites' : 'Open Roblox.com', enabled: usable, action: () => openWebsites(ids) },
+      ];
+      if (!many) {
+        items.push({ item: 'Separator' });
+        items.push({ id: 'signin', text: targets[0]?.status === 'expired' ? 'Sign In Again...' : 'Refresh Sign-In...', action: addAccount });
+      }
+      items.push({ item: 'Separator' });
+      items.push({ id: 'delete', text: many ? `Delete ${targets.length} Accounts...` : 'Delete...', action: () => remove(ids) });
+      popup(items);
+    }
+
+    function showSortMenu() {
+      popup(SORTS.map((s) => ({
+        id: s.id,
+        text: s.label,
+        checked: state.sort === s.id,
+        action: () => { state.sort = s.id; store.set('altdeck.sort', s.id); render(); },
+      })));
+    }
+
+    function showMoreMenu() {
+      popup([
+        { id: 'import', text: 'Import Accounts...', action: importAccounts },
+        { id: 'export', text: 'Export Accounts...', enabled: state.accounts.length > 0, action: exportAccounts },
+        { item: 'Separator' },
+        { id: 'check', text: 'Check All Accounts', enabled: state.accounts.length > 0 && !state.checking, action: validate },
+        { id: 'quit', text: 'Quit All Roblox Instances', action: killAll },
+      ]);
+    }
+
+    function select(id, event) {
+      const shown = visibleAccounts().map((a) => a.userId);
+      if (event.shiftKey && state.anchor != null && shown.includes(state.anchor)) {
+        const [a, b] = [shown.indexOf(state.anchor), shown.indexOf(id)].sort((x, y) => x - y);
+        state.selected = new Set(shown.slice(a, b + 1));
+      } else if (event.metaKey) {
+        if (state.selected.has(id) && state.selected.size > 1) state.selected.delete(id);
+        else state.selected.add(id);
+        state.anchor = id;
+      } else {
+        state.selected = new Set([id]);
+        state.anchor = id;
+      }
+      render();
+    }
+
+    function moveSelection(delta, extend) {
+      const shown = visibleAccounts().map((a) => a.userId);
+      if (!shown.length) return;
+      const current = state.anchor != null && shown.includes(state.anchor) ? shown.indexOf(state.anchor) : (delta > 0 ? -1 : shown.length);
+      const next = Math.max(0, Math.min(shown.length - 1, current + delta));
+      const id = shown[next];
+      if (extend) state.selected.add(id);
+      else state.selected = new Set([id]);
+      state.anchor = id;
+      render();
+      sidebarList.querySelector(`.item[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
+
+    sidebarList.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.item');
+      if (!item || e.target.closest('button')) return;
+      select(Number(item.dataset.id), e);
+    });
+
+    sidebarList.addEventListener('click', (e) => {
+      const button = e.target.closest('button[data-action="launch"]');
+      if (button) launch([Number(button.closest('.item').dataset.id)]);
+    });
+
+    sidebarList.addEventListener('dblclick', (e) => {
+      const item = e.target.closest('.item');
+      if (!item || e.target.closest('button')) return;
+      const a = byId(Number(item.dataset.id));
+      if (a?.status === 'expired') addAccount();
+      else if (a) launch([a.userId]);
+    });
+
+    detail.addEventListener('click', (e) => {
+      const button = e.target.closest('button[data-action]');
+      if (!button) return;
+      const ids = [...state.selected];
+      ({
+        add: addAccount,
+        launch: () => launch(ids),
+        web: () => openWebsites(ids),
+        profile: () => call('open_website', { userId: ids[0], path: `/users/${ids[0]}/profile` }).catch((e) => alertError("Couldn't Open Profile", e.message)),
+        settings: () => call('open_website', { userId: ids[0], path: '/my/account#!/info' }).catch((e) => alertError("Couldn't Open Settings", e.message)),
+        signin: addAccount,
+        delete: () => remove(ids),
+        'launch-selected': () => launch(ids),
+        'web-selected': () => openWebsites(ids),
+        'delete-selected': () => remove(ids),
+      })[button.dataset.action]?.();
+    });
+
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('input, .selectable')) return;
+      e.preventDefault();
+      const item = e.target.closest('.item');
+      if (item) showItemMenu(Number(item.dataset.id));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const typing = document.activeElement === searchInput;
+      const cmd = e.metaKey;
+
+      if (cmd && e.key === '1') { e.preventDefault(); setTab('account'); return; }
+      if (cmd && e.key === '2') { e.preventDefault(); setTab('discover'); return; }
+      if (document.activeElement === gameSearch) return;
+      if (cmd && e.key === 'f') {
+        e.preventDefault();
+        const field = state.tab === 'discover' ? gameSearch : searchInput;
+        field.focus();
+        field.select();
+        return;
+      }
+      if (cmd && e.key === 'n') { e.preventDefault(); addAccount(); return; }
+      if (cmd && e.key === 'r') { e.preventDefault(); validate(); return; }
+
+      if (typing) {
+        if (e.key === 'Escape') {
+          if (searchInput.value) { searchInput.value = ''; searchInput.dispatchEvent(new Event('input')); }
+          else searchInput.blur();
+        } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+          e.preventDefault();
+          sidebarList.focus();
+          const first = visibleAccounts()[0];
+          if (first) { state.selected = new Set([first.userId]); state.anchor = first.userId; render(); }
+        }
+        return;
+      }
+
+      if (cmd && e.key === 'a') { e.preventDefault(); state.selected = new Set(visibleAccounts().map((a) => a.userId)); render(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sidebarList.focus(); moveSelection(e.key === 'ArrowDown' ? 1 : -1, e.shiftKey); return; }
+      if (e.key === 'Enter' && state.selected.size) { e.preventDefault(); launch([...state.selected]); return; }
+      if ((e.key === 'Backspace' || e.key === 'Delete') && state.selected.size) { e.preventDefault(); remove([...state.selected]); return; }
+
+      if (e.key.length === 1 && !cmd && !e.ctrlKey && !e.altKey) (state.tab === 'discover' ? gameSearch : searchInput).focus();
+    });
+
+    searchInput.addEventListener('input', () => {
+      state.query = searchInput.value.trim();
+      const shown = visibleAccounts();
+      if (shown.length && ![...state.selected].some((id) => shown.some((a) => a.userId === id))) {
+        state.selected = new Set([shown[0].userId]);
+        state.anchor = shown[0].userId;
+      }
+      render();
+    });
+
+    $('clearSearch').addEventListener('click', (e) => {
+      e.preventDefault();
+      searchInput.value = '';
+      state.query = '';
+      render();
+      searchInput.focus();
+    });
+
+    $('sortBtn').addEventListener('click', showSortMenu);
+    $('refreshBtn').addEventListener('click', validate);
+    $('killBtn').addEventListener('click', killAll);
+    $('moreBtn').addEventListener('click', showMoreMenu);
+    $('addBtn').addEventListener('click', addAccount);
+
+    load().then(() => sidebarList.focus());
+    if (state.tab === 'discover') { renderToolbar(); renderDiscover(); loadShelves(); }
+  </script>
+</body>
+</html>
